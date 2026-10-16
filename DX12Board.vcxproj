@@ -123,7 +123,16 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="BoardCanvas.cpp" />
+    <ClCompile Include="DX12App.cpp" />
     <ClCompile Include="main.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="BoardCanvas.h" />
+    <ClInclude Include="DX12App.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Shader.hlsl" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
