@@ -18,10 +18,6 @@ namespace
 {
     // 칠판 기본 배경색
     constexpr std::uint32_t BoardColor = 0xFF3B4A21u;
-
-    // 분필과 지우개 크기
-    constexpr int ChalkRadius = 4;
-    constexpr int EraserRadius = 12;
 }
 
 // 생성자: 칠판을 초록색으로 초기화
@@ -54,10 +50,11 @@ int BoardCanvas::ToPixelY(float v) const
 
 void BoardCanvas::DrawBrush(int x, int y)
 {
-    // 지우개일 때 더 굵게 처리
+
+    // 현재 선택한 도구에 따라 반지름 결정
     int radius = eraserMode
-        ? EraserRadius
-        : ChalkRadius;
+        ? eraserRadius
+        : chalkRadius;
 
     // 지우개는 칠판 배경색으로 덮어쓰기
     std::uint32_t paintColor = eraserMode
@@ -378,4 +375,101 @@ bool BoardCanvas::LoadBMP(const char* filename)
     dirty = true;
 
     return true;
+}
+
+void BoardCanvas::Clear()
+{
+    // 그리기 중이라면 종료
+    EndStroke();
+
+    // 모든 픽셀을 칠판 배경색으로 변경
+    std::fill(
+        pixels.begin(),
+        pixels.end(),
+        BoardColor
+    );
+
+    // 획 개수 초기화
+    strokeCount = 0;
+
+    // GPU 텍스처 업데이트 요청
+    dirty = true;
+}
+
+const wchar_t* BoardCanvas::GetCurrentToolName() const
+{
+    if (eraserMode)
+        return L"Eraser";
+
+    switch (currentColor)
+    {
+    case 0xFFE8F4F8u:
+        return L"White";
+
+    case 0xFF8AE5FFu:
+        return L"Yellow";
+
+    case 0xFF61A2F4u:
+        return L"Orange";
+
+    case 0xFFB8A9F5u:
+        return L"Pink";
+
+    case 0xFFE5D6A9u:
+        return L"Sky Blue";
+
+    case 0xFFC7E4B7u:
+        return L"Green";
+
+    
+
+    default:
+        return L"Custom";
+    }
+}
+
+// 현재 도구의 굵기 증가
+void BoardCanvas::IncreaseBrushSize()
+{
+    if (eraserMode)
+    {
+        // 지우개: 최대 반지름 24
+        eraserRadius = std::min(
+            eraserRadius + 2, 24
+        );
+    }
+    else
+    {
+        // 분필: 최대 반지름 10
+        chalkRadius = std::min(
+            chalkRadius + 1, 10
+        );
+    }
+}
+
+// 현재 도구의 굵기 감소
+void BoardCanvas::DecreaseBrushSize()
+{
+    if (eraserMode)
+    {
+        // 지우개: 최소 반지름 6
+        eraserRadius = std::max(
+            eraserRadius - 2, 6
+        );
+    }
+    else
+    {
+        // 분필: 최소 반지름 2
+        chalkRadius = std::max(
+            chalkRadius - 1, 2
+        );
+    }
+}
+
+// 현재 선택한 도구의 반지름
+int BoardCanvas::GetCurrentBrushRadius() const
+{
+    return eraserMode
+        ? eraserRadius
+        : chalkRadius;
 }

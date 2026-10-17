@@ -315,9 +315,9 @@ void DX12App::Render()
         &paletteVertexBufferView
     );
 
-    // 받침대 + 일곱 개 선택 영역 출력
+    // 받침대 2개 + 선택 영역 7개
     commandList->DrawInstanced(
-        48,
+        54,
         1,
         0,
         0
@@ -825,21 +825,23 @@ void DX12App::CreateBoardResources()
     // 3D 분필 색상 팔레트
     // ==============================
 
-    const XMFLOAT3 paletteColors[7] =
+    XMFLOAT3 paletteColors[7] =
     {
-        {0.973f, 0.957f, 0.910f}, // 흰색
-        {1.000f, 0.898f, 0.541f}, // 노란색
-        {0.961f, 0.663f, 0.722f}, // 분홍색
-        {0.663f, 0.839f, 0.898f}, // 하늘색
-        {0.718f, 0.894f, 0.780f}, // 연두색
-        {0.957f, 0.635f, 0.380f}, // 주황색
-        {0.650f, 0.650f, 0.650f}  // 지우개
+        {0.95f, 0.93f, 0.88f}, // 0: White
+        {0.93f, 0.85f, 0.52f}, // 1: Yellow
+        {0.91f, 0.62f, 0.35f}, // 2: Orange
+        {0.86f, 0.60f, 0.67f}, // 3: Pink
+        {0.62f, 0.76f, 0.82f}, // 4: Sky Blue
+        {0.66f, 0.80f, 0.69f}, // 5: Green
+        {0.68f, 0.68f, 0.68f}  // 6: Eraser
     };
 
-    // 받침대 6개 정점 + 색상 7개 * 6개 정점
-    Vertex paletteVertices[48] = {};
 
-    // 사각형 두 삼각형을 생성하는 함수
+    // 분필 받침대 1개 + 지우개 받침대 1개
+// + 색상 사각형 7개
+// 총 9개 사각형 * 6개 정점 = 54개
+    Vertex paletteVertices[54] = {};
+
     auto AddQuad = [&](
         int start,
         float left,
@@ -849,49 +851,94 @@ void DX12App::CreateBoardResources()
         float z,
         const XMFLOAT3& color)
         {
-            paletteVertices[start + 0] =
-            { {left, bottom, z}, color };
+            paletteVertices[start + 0] = { {left,  bottom, z}, color };
+            paletteVertices[start + 1] = { {left,  top,    z}, color };
+            paletteVertices[start + 2] = { {right, top,    z}, color };
 
-            paletteVertices[start + 1] =
-            { {left, top, z}, color };
-
-            paletteVertices[start + 2] =
-            { {right, top, z}, color };
-
-            paletteVertices[start + 3] =
-            { {left, bottom, z}, color };
-
-            paletteVertices[start + 4] =
-            { {right, top, z}, color };
-
-            paletteVertices[start + 5] =
-            { {right, bottom, z}, color };
+            paletteVertices[start + 3] = { {left,  bottom, z}, color };
+            paletteVertices[start + 4] = { {right, top,    z}, color };
+            paletteVertices[start + 5] = { {right, bottom, z}, color };
         };
 
-    // 갈색 팔레트 받침대
+    // ==============================
+    // 기준 좌표
+    // ==============================
+    constexpr float BoardLeft = -3.0f;
+    constexpr float BoardRight = 3.0f;
+
+    constexpr float TrayBottom = -2.82f;
+    constexpr float TrayTop = -2.06f;
+
+    constexpr float ChalkTrayLeft = -3.0f;
+    constexpr float ChalkTrayRight = 2.05f;
+
+    constexpr float EraserTrayLeft = 2.25f;
+    constexpr float EraserTrayRight = 3.0f;
+
+    // ==============================
+    // 1) 분필 받침대
+    // ==============================
     AddQuad(
         0,
-        -2.9f, 2.9f,
-        -2.82f, -2.06f,
+        ChalkTrayLeft, ChalkTrayRight,
+        TrayBottom, TrayTop,
         0.10f,
         { 0.38f, 0.22f, 0.12f }
     );
 
-    // 일곱 가지 선택 영역
-    for (int i = 0; i < 7; ++i)
-    {
-        float centerX = -2.4f + i * 0.8f;
+    // ==============================
+    // 2) 지우개 받침대
+    // ==============================
+    AddQuad(
+        6,
+        EraserTrayLeft, EraserTrayRight,
+        TrayBottom, TrayTop,
+        0.10f,
+        { 0.32f, 0.21f, 0.13f }
+    );
 
+    // ==============================
+    // 3) 분필 6개 위치
+    // 순서: 흰 / 노 / 주 / 핑 / 파 / 연
+    // ==============================
+    const float chalkCenters[6] =
+    {
+        -2.45f, // White
+        -1.62f, // Yellow
+        -0.79f, // Orange
+         0.04f, // Pink
+         0.87f, // Sky Blue
+         1.70f  // Green
+    };
+
+    for (int i = 0; i < 6; ++i)
+    {
         AddQuad(
-            6 + i * 6,
-            centerX - 0.30f,
-            centerX + 0.30f,
+            12 + i * 6,
+            chalkCenters[i] - 0.28f,
+            chalkCenters[i] + 0.28f,
             -2.69f,
             -2.18f,
             -0.08f,
             paletteColors[i]
         );
     }
+
+    // ==============================
+    // 4) 지우개
+    // ==============================
+    constexpr float eraserCenterX = 2.625f;
+
+    AddQuad(
+        48,
+        eraserCenterX - 0.22f,
+        eraserCenterX + 0.22f,
+        -2.69f,
+        -2.18f,
+        -0.08f,
+        paletteColors[6]
+    );
+
 
     // 정점 버퍼 생성
     D3D12_RESOURCE_DESC paletteBufferDesc =
@@ -1269,15 +1316,17 @@ bool DX12App::BeginStroke(int mouseX, int mouseY)
     if (PickPalette(mouseX, mouseY, selectedIndex))
     {
         // 기존 키보드 색상과 같은 색상 사용
+
         constexpr std::uint32_t colors[6] =
         {
-            0xFFE8F4F8u, // 흰색
-            0xFF8AE5FFu, // 노란색
-            0xFFB8A9F5u, // 분홍색
-            0xFFE5D6A9u, // 하늘색
-            0xFFC7E4B7u, // 연두색
-            0xFF61A2F4u  // 주황색
+            0xFFE8F4F8u, // 0: 흰색
+            0xFF8AE5FFu, // 1: 노란색
+            0xFF61A2F4u, // 2: 주황색
+            0xFFB8A9F5u, // 3: 분홍색
+            0xFFE5D6A9u, // 4: 하늘색
+            0xFFC7E4B7u  // 5: 연두색
         };
+
 
         if (selectedIndex == 6)
         {
@@ -1629,18 +1678,53 @@ bool DX12App::PickPalette(
     if (y < -2.69f || y > -2.18f)
         return false;
 
-    // 일곱 개 색상 영역 검사
+
+    //// 분필 6개 + 지우개 1개 피킹
+    //for (int i = 0; i < 7; ++i)
+    //{
+    //    float centerX;
+
+    //    if (i == 6)
+    //    {
+    //        // 지우개는 오른쪽 별도 위치
+    //        centerX = 3.0f;
+    //    }
+    //    else
+    //    {
+    //        // 분필 6개는 기존 위치 유지
+    //        centerX = -2.4f + i * 0.8f;
+    //    }
+
+    //    if (x >= centerX - 0.30f &&
+    //        x <= centerX + 0.30f)
+    //    {
+    //        outIndex = i;
+    //        return true;
+    //    }
+    //}
+    const float paletteCenters[7] =
+    {
+        -2.45f, // 0 White
+        -1.62f, // 1 Yellow
+        -0.79f, // 2 Orange
+         0.04f, // 3 Pink
+         0.87f, // 4 Sky Blue
+         1.70f, // 5 Green
+         2.625f // 6 Eraser
+    };
+
     for (int i = 0; i < 7; ++i)
     {
-        float centerX = -2.4f + i * 0.8f;
+        float halfWidth = (i == 6) ? 0.22f : 0.28f;
 
-        if (x >= centerX - 0.30f &&
-            x <= centerX + 0.30f)
+        if (x >= paletteCenters[i] - halfWidth &&
+            x <= paletteCenters[i] + halfWidth)
         {
             outIndex = i;
             return true;
         }
     }
+
 
     return false;
 }
@@ -1658,4 +1742,29 @@ bool DX12App::LoadBoard()
     boardCanvas.EndStroke();
 
     return boardCanvas.LoadBMP("Board.bmp");
+}
+
+void DX12App::ClearBoard()
+{
+    boardCanvas.Clear();
+}
+
+const wchar_t* DX12App::GetCurrentToolName() const
+{
+    return boardCanvas.GetCurrentToolName();
+}
+
+void DX12App::IncreaseBrushSize()
+{
+    boardCanvas.IncreaseBrushSize();
+}
+
+void DX12App::DecreaseBrushSize()
+{
+    boardCanvas.DecreaseBrushSize();
+}
+
+int DX12App::GetCurrentBrushRadius() const
+{
+    return boardCanvas.GetCurrentBrushRadius();
 }

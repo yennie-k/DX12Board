@@ -51,9 +51,22 @@ public:
     // 지우개 모드 선택
     void SelectEraser();
 
+    // 분필 또는 지우개 굵기 조절
+    void IncreaseBrushSize();
+    void DecreaseBrushSize();
+
+    // 현재 도구 반지름
+    int GetCurrentBrushRadius() const;
+
+
     // 칠판 그림 저장 및 불러오기
     bool SaveBoard() const;
     bool LoadBoard();
+
+    // 칠판 전체 지우기
+    void ClearBoard();
+
+    const wchar_t* GetCurrentToolName() const;
 
     // 테스트용
     unsigned int GetStrokeCount() const;
