@@ -15,6 +15,17 @@ constexpr int ID_BRUSH_MINUS = 1006;
 constexpr int ID_BRUSH_PLUS = 1007;
 constexpr int ID_BRUSH_SIZE_TEXT = 1008;
 
+// 오른쪽 도구 패널 배경색
+HBRUSH GetPanelBrush()
+{
+    static HBRUSH panelBrush =
+        CreateSolidBrush(
+            RGB(243, 239, 230)
+        );
+
+    return panelBrush;
+}
+
 
 // DirectX 12 렌더링 전용 자식 창
 LRESULT CALLBACK RenderWndProc(
@@ -31,6 +42,27 @@ LRESULT CALLBACK RenderWndProc(
         return DefWindowProcW(
             hwnd, msg, wParam, lParam
         );
+
+        // STATIC 텍스트의 색상 및 배경 처리
+    case WM_CTLCOLORSTATIC:
+    {
+        HDC hdc = reinterpret_cast<HDC>(wParam);
+
+        // 글씨 색상: 진한 녹색
+        SetTextColor(
+            hdc,
+            RGB(52, 77, 64)
+        );
+
+        // 텍스트 배경 처리
+        SetBkMode(hdc, TRANSPARENT);
+
+        // 패널과 같은 배경색 사용
+        return reinterpret_cast<LRESULT>(
+            GetPanelBrush()
+            );
+    }
+
 
         // 마우스 입력을 기존 WndProc으로 전달
     case WM_LBUTTONDOWN:
@@ -407,8 +439,8 @@ int WINAPI wWinMain(
     wc.lpszClassName = CLASS_NAME;
     wc.hCursor = LoadCursorW(
         nullptr, IDC_ARROW);
-    wc.hbrBackground =
-        reinterpret_cast<HBRUSH>(COLOR_BTNFACE + 1);
+    wc.hbrBackground = GetPanelBrush();
+
 
 
     if (!RegisterClassExW(&wc))
@@ -727,6 +759,129 @@ int WINAPI wWinMain(
             TRUE
         );
 
+        // ======================================
+        // 오른쪽 도구 패널 레이아웃 정리
+        // ======================================
+
+        // 저장 / 불러오기 / 전체 지우기
+        MoveWindow(saveButton,
+            1300, 125, 140, 36, TRUE);
+
+        MoveWindow(loadButton,
+            1300, 171, 140, 36, TRUE);
+
+        MoveWindow(clearButton,
+            1300, 217, 140, 36, TRUE);
+
+        // 저장 및 불러오기 상태 메시지
+        MoveWindow(statusText,
+            1300, 265, 150, 32, TRUE);
+
+        // 현재 선택한 도구 표시
+        MoveWindow(toolText,
+            1300, 355, 150, 32, TRUE);
+
+        // 브러시 크기 조절 버튼
+        MoveWindow(brushMinusButton,
+            1300, 430, 65, 36, TRUE);
+
+        MoveWindow(brushPlusButton,
+            1375, 430, 65, 36, TRUE);
+
+        // 브러시 반지름 표시
+        MoveWindow(brushSizeText,
+            1300, 478, 150, 30, TRUE);
+
+        // ======================================
+        // 오른쪽 패널 안내 텍스트 생성
+        // ======================================
+
+        auto AddPanelLabel = [&](
+            const wchar_t* text,
+            int y)
+            {
+                HWND label = CreateWindowW(
+                    L"STATIC",
+                    text,
+                    WS_CHILD | WS_VISIBLE | SS_LEFT,
+                    1300, y,
+                    150, 22,
+                    hwnd,
+                    nullptr,
+                    hInstance,
+                    nullptr
+                );
+
+                if (!label)
+                {
+                    throw HRESULT_FROM_WIN32(GetLastError());
+                }
+
+                SendMessageW(
+                    label,
+                    WM_SETFONT,
+                    reinterpret_cast<WPARAM>(
+                        GetStockObject(DEFAULT_GUI_FONT)
+                        ),
+                    TRUE
+                );
+                return label;
+            };
+
+
+        // 프로그램 제목
+        HWND titleLabel =
+            AddPanelLabel(L"CHALKBOARD", 35);
+
+        // 제목 전용 굵은 글꼴
+        HFONT titleFont = CreateFontW(
+            -21, 0, 0, 0,
+            FW_BOLD,
+            FALSE, FALSE, FALSE,
+            DEFAULT_CHARSET,
+            OUT_DEFAULT_PRECIS,
+            CLIP_DEFAULT_PRECIS,
+            CLEARTYPE_QUALITY,
+            DEFAULT_PITCH | FF_DONTCARE,
+            L"Segoe UI"
+        );
+
+        if (!titleFont)
+            throw HRESULT_FROM_WIN32(GetLastError());
+
+        // 제목 영역 높이 조정
+        MoveWindow(
+            titleLabel,
+            1300, 30,
+            150, 30,
+            TRUE
+        );
+
+        // 제목에 새 글꼴 적용
+        SendMessageW(
+            titleLabel,
+            WM_SETFONT,
+            reinterpret_cast<WPARAM>(titleFont),
+            TRUE
+        );
+
+        // 부제목
+        AddPanelLabel(L"DRAWING TOOLS", 62);
+
+
+        // 기능별 구분
+        AddPanelLabel(L"FILE", 97);
+        AddPanelLabel(L"CURRENT TOOL", 325);
+        AddPanelLabel(L"BRUSH SIZE", 400);
+
+        // 조작 방법 안내
+        AddPanelLabel(L"CONTROLS", 550);
+        AddPanelLabel(L"Left Drag : Draw", 580);
+        AddPanelLabel(L"Right Drag : Rotate", 602);
+        AddPanelLabel(L"R : Reset Camera", 624);
+        AddPanelLabel(L"1-6 : Chalk Colors", 646);
+        AddPanelLabel(L"E : Eraser", 668);
+
 
         // 6. 창 표시
         ShowWindow(hwnd, nCmdShow);
@@ -795,7 +950,7 @@ int WINAPI wWinMain(
 
             }
         }
-
+        DeleteObject(titleFont);
         return static_cast<int>(msg.wParam);
     }
     catch (HRESULT hr)
